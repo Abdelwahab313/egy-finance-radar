@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0e14;
+  --panel: #11161f;
+  --panel-2: #161d29;
+  --border: #232c3b;
+  --text: #e6edf3;
+  --muted: #8b98a9;
+  --accent: #d4af37;       /* EGX gold */
+  --green: #2ecc71;
+  --red: #e74c3c;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+}
+
+/* Rendered investigation reports (react-markdown output). Uses the theme vars
+   directly so we avoid pulling in the Tailwind typography plugin. */
+.report-md {
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+.report-md > :first-child { margin-top: 0; }
+.report-md h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 1.6rem 0 0.8rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+.report-md h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 1.8rem 0 0.7rem;
+}
+.report-md h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 1.3rem 0 0.5rem;
+}
+.report-md p { margin: 0.7rem 0; }
+.report-md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.report-md a:hover { opacity: 0.85; }
+.report-md strong { color: var(--text); font-weight: 600; }
+.report-md ul, .report-md ol { margin: 0.7rem 0; padding-left: 1.4rem; }
+.report-md li { margin: 0.3rem 0; }
+.report-md ul { list-style: disc; }
+.report-md ol { list-style: decimal; }
+.report-md blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 1rem 0;
+  padding: 0.2rem 0 0.2rem 1rem;
+  color: var(--muted);
+}
+.report-md code {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.85em;
+}
+.report-md pre {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+.report-md pre code { background: none; border: none; padding: 0; }
+.report-md table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.88rem;
+}
+.report-md th, .report-md td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+}
+.report-md th { background: var(--panel-2); color: var(--muted); font-weight: 600; }
+.report-md tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+.report-md hr { border: none; border-top: 1px solid var(--border); margin: 1.6rem 0; }
+.report-md em { color: var(--muted); }

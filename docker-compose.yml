@@ -1,0 +1,56 @@
+# EGY Finance — single externally-exposed port: 5040 (frontend).
+# The backend is reachable only inside the compose network; the frontend
+# proxies /api/* to it, so nothing else binds a host port to conflict with.
+#
+#   docker compose up --build      # -> http://localhost:5040
+#
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: egx
+      POSTGRES_PASSWORD: egx
+      POSTGRES_DB: egx
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # dev convenience only: lets the host venv connect for local runs /
+      # verification. The app itself reaches the db in-network as db:5432.
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U egx -d egx"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    # no `ports:` — internal only. Other services reach it as http://backend:8000
+    expose:
+      - "8000"
+    environment:
+      DATABASE_URL: postgresql://egx:egx@db:5432/egx
+    volumes:
+      # persist snapshot.json / orders.json / reports across rebuilds + restarts
+      - ./backend/data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Next bakes rewrites() at build time, so the proxy target is a build
+        # arg, not a runtime env. Points /api/* at the backend service.
+        BACKEND_ORIGIN: "http://backend:8000"
+    ports:
+      - "5040:5040"          # the ONE host port for the whole app
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
