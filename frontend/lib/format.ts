@@ -17,6 +17,42 @@ export const compactEgp = (v?: number) => {
   return v.toFixed(0);
 };
 
+/** Grouped number with no currency suffix — for `.num` cells (e.g. 21,875). */
+export const grp = (v?: number, frac = 0) =>
+  v == null
+    ? "—"
+    : v.toLocaleString("en-US", { maximumFractionDigits: frac, minimumFractionDigits: frac });
+
+/** Signed grouped number with a leading ▲/▼-free +/− and the en-dash minus. */
+export const signed = (v?: number, frac = 0) => {
+  if (v == null) return "—";
+  const s = Math.abs(v).toLocaleString("en-US", { maximumFractionDigits: frac, minimumFractionDigits: frac });
+  return v < 0 ? `−${s}` : `+${s}`;
+};
+
+/** Signed percent (value is already a ratio, e.g. 0.011 → "+1.1%"). */
+export const signedPct = (v?: number, frac = 1) => {
+  if (v == null) return "—";
+  const s = (Math.abs(v) * 100).toFixed(frac);
+  return v < 0 ? `−${s}%` : `+${s}%`;
+};
+
+/** direction → "pos" | "neg" | "" (used for .pos/.neg/.plcell classes). */
+export const dir = (v?: number) => (v == null ? "" : v > 0 ? "pos" : v < 0 ? "neg" : "");
+
+/** Bucket enum → the css modifier used by .bkt / score colors. */
+export const bucketSlug: Record<Bucket, string> = {
+  stable_bluechip: "stable",
+  value: "value",
+  growth: "growth",
+  watchlist: "watchlist",
+  speculative: "speculative",
+};
+
+/** Signal string → the css modifier used by .sig. */
+export const sigSlug = (signal?: string) =>
+  (signal ?? "").toLowerCase().replace(/[^a-z]/g, "") || "nodata";
+
 export const bucketLabel: Record<Bucket, string> = {
   stable_bluechip: "Stable blue-chip",
   value: "Value",
