@@ -165,6 +165,8 @@ def _holdings_block(stock_by_sym: dict) -> dict | None:
         st = stock_by_sym.get(sym, {})
         name, sector = _instrument_meta(sym, st)
         price = (st.get("metrics") or {}).get("price")
+        if price is None:                       # Yahoo can't price it (e.g. MTF fund)
+            price = config.MANUAL_NAV.get(sym)  # → mark to manual NAV, not cost
         sig = st.get("signal") or {}
         entry = float(row.price)
         shares = float(row.shares)
@@ -370,37 +372,47 @@ def _plan_block(portfolio: dict, net_div_income_egp: float) -> dict:
 def _scene_brief() -> dict:
     """Macro brief for the dashboard header — refreshed from live research (9-Jun-2026).
 
-    Sources (Jun-2026 web search): EGX30 ~52.2k (4-Jun close 52,653; live ~52.2k), off
-    the 11-May ATH 54,979, +~60-61% YoY; CBE held the policy rate at 19% on 21-May-2026
-    after 825bp of 2025-26 cuts paused; headline inflation 14.9% YoY (Apr) vs 15.2% (Mar),
-    core elevated — the easing cycle has STALLED and the Iran/Israel/US energy shock has
-    flipped the consensus hawkish (Goldman now models ~200bp of HIKES, inflation peaking
-    ~17.6% YoY in Aug, ~16.8% year-end); EGP ~52.0/USD (8-Jun), +1.3% MoM but −4.9% YoY;
-    foreign investors net buyers (late-Apr +LE368m); EGX eyes a record ~8-IPO year
-    (medical/tourism), FTSE developed-market criteria met, derivatives/short-selling
-    rolling out; Suez reopening flagged by Morgan Stanley as the key equity catalyst but
-    traffic still structurally depressed.
+    Sources (5-Jul-2026 web search): EGX30 50,533 (1-Jul close), −4.5% MoM after the
+    late-Jun stamp-duty amendment selloff (weakest close 50,344 on 22-Jun), ~8% off the
+    11-May ATH 54,979 but still +~54% YoY; CBE held 19% on 2-Apr and 21-May (825bp of
+    2025-26 cuts paused), Goldman still models ~200bp of Q3 HIKES; headline inflation
+    COOLED to 14.6% YoY (May) vs 14.9% (Apr) — lowest since Feb — but monthly CPI ran
+    +1.6% and the CBE itself guides inflation accelerating through Q3-2026 (June CPI due
+    ~10-Jul); EGP STRENGTHENED to ~49.1/USD (3-Jul; +5.2% MoM, 30d range 49.10–52.12);
+    foreign capital returned across debt (~$4bn net buys of govt paper in one late-Jun
+    week), equities and the new futures market; urea (Egypt FOB) $700–850/t on the
+    Hormuz closure — a windfall for MFPC/ABUK, though Egypt is moving to link feedstock
+    gas pricing to international fertilizer prices (gas ≈70% of their cost base);
+    single-stock futures LIVE on COMI & TMGH, covered short selling next; petroleum-SOE
+    IPO drive accelerating (ENPPI filing, MNT-Halan studying a listing); S&P DJI is
+    reviewing Egypt's EM classification — liquidity-sensitive after the stamp-duty hike.
     """
     return {
-        "as_of": "9 June 2026",
-        "headline": ("EGX30 ~52.2k (−5% off the 11-May ATH ~55k), +~60% YoY and still "
-                     "cheap (~8–9x fwd P/E) — but the rate-cut tailwind has stalled and "
-                     "the inflation risk has turned hawkish; consolidating."),
-        "egp_usd": "~52.0 (8-Jun; +1.3% MoM, −4.9% YoY)",
-        "inflation": "14.9% YoY (Apr) vs 15.2% (Mar); consensus turned hawkish — "
-                     "Goldman sees a ~17.6% Aug peak, ~16.8% year-end",
-        "policy_rate": "19% (HELD 21-May-2026; 825bp of 2025-26 cuts now paused, "
-                       "hike risk if the energy shock persists)",
+        "as_of": "5 July 2026",
+        "headline": ("EGX30 ~50.5k (−4.5% MoM on the stamp-duty selloff, ~8% off the "
+                     "11-May ATH ~55k, still +~54% YoY and cheap ~8–9x fwd P/E) — "
+                     "consolidating while the EGP firms to ~49.1 and foreign money "
+                     "returns across debt, equities and futures."),
+        "egp_usd": "~49.1 (3-Jul; pound +5.2% MoM — STRONGER, 30d range 49.10–52.12)",
+        "inflation": "14.6% YoY (May) vs 14.9% (Apr) — lowest since Feb, but +1.6% MoM "
+                     "and CBE guides acceleration through Q3; June CPI due ~10-Jul",
+        "policy_rate": "19% (held 2-Apr & 21-May; 825bp of 2025-26 cuts paused, "
+                       "Goldman still models ~200bp of Q3 hikes; next MPC late-Jul)",
         "tbill_12m": "~23.4% — the risk-free hurdle for any equity",
-        "tailwinds": ["FX earners (fertilizers ABUK/MFPC printing +88–102% YoY profit)",
+        "tailwinds": ["urea $700–850/t (Hormuz closure) — MFPC/ABUK export windfall",
                       "high-ROE banks (rate beneficiaries if hikes resume)",
-                      "FTSE developed-market criteria met",
-                      "record ~8-IPO year (medical/tourism) + derivatives/short-selling launching",
+                      "foreign inflows across debt (~$4bn/wk late-Jun), equities, futures",
+                      "record IPO year: petroleum SOEs, ENPPI filing, MNT-Halan studying",
+                      "single-stock futures live (COMI, TMGH); covered shorts next",
                       "Suez reopening optionality (Morgan Stanley's key catalyst)"],
-        "risks": ["regional conflict (Israel/Iran/US/Houthis) → Suez & FX/energy shock",
+        "risks": ["stamp-duty amendments (late-Jun) draining liquidity — S&P DJI EM "
+                  "review is liquidity-sensitive",
                   "inflation re-accelerating → rate HIKES, not cuts, would re-rate cheap equities",
-                  "Suez revenue still structurally depressed", "foreign-flow / EGP volatility"],
-        "tax_note": "CGT abolished Jun-2025 → 0.1–0.115% stamp duty per side; 5% WHT on dividends.",
+                  "gas feedstock repricing to intl fertilizer prices — margin risk for MFPC/ABUK",
+                  "stronger EGP trims FX-earner translation gains",
+                  "regional conflict (Israel/Iran/US/Houthis) → Suez & FX/energy shock"],
+        "tax_note": "CGT abolished Jun-2025 → stamp duty per side (amendments approved "
+                    "late-Jun-2026, rates raised); 5% WHT on dividends.",
     }
 
 
