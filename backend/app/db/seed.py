@@ -1,6 +1,6 @@
 """Idempotent seeder — ``python -m app.db.seed``.
 
-Seeds three tables, in FK-safe order:
+Seeds four tables, in FK-safe order:
 
 1. ``instrument`` — one row per ``EGX_UNIVERSE`` entry (upsert; re-running
    updates name/sector/fundamentals, never duplicates).
@@ -10,6 +10,9 @@ Seeds three tables, in FK-safe order:
 3. ``position`` — one Position per held ticker, with the owner-confirmed Horizon
    (COMI/MFPC/ADIB = core, EMFD = tactical). ``opened_at`` = earliest order
    ``traded_at`` for the symbol. Upsert on the ``symbol`` PK (idempotent).
+4. ``portfolio_snapshot`` — the dated book frames from
+   ``backend/data/portfolio_history.json`` (ADR-0005). Upsert on ``as_of``, so a
+   re-seed refreshes a day in place. No FK: it is a book-level, not per-symbol, row.
 
 ``seed()`` is safe to import and call from other modules. The whole pass runs
 inside a single transaction.
@@ -25,10 +28,11 @@ from peewee import SQL
 
 from app.data.universe import EGX_UNIVERSE
 from app.db import connect, db
-from app.db.models import Instrument, Orders, Position
+from app.db.models import Instrument, Orders, PortfolioSnapshot, Position
 
 # backend/app/db/seed.py -> backend/data/orders.json
 ORDERS_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "orders.json"
+HISTORY_FILE = ORDERS_FILE.parent / "portfolio_history.json"
 
 # `now()` SQL literal, reused in upsert `update` clauses to bump updated_at.
 SQL_NOW = SQL("now()")
@@ -142,6 +146,43 @@ def seed_positions() -> int:
     return count
 
 
+_SNAPSHOT_FIELDS = (
+    "reconstructed", "source", "nav_total", "cost_basis", "market_value",
+    "invested", "cash", "unrealized_pnl", "unrealized_pct", "deployed_pct",
+    "holdings", "bucket_weights", "sector_weights", "events",
+)
+
+
+def seed_portfolio_history() -> int:
+    """Upsert every row of ``portfolio_history.json`` into ``portfolio_snapshot``.
+
+    Idempotent on ``as_of`` (ADR-0005): re-running a day overwrites that frame
+    rather than duplicating it, so a same-day Refresh and a re-seed agree.
+    """
+    if not HISTORY_FILE.exists():
+        print("portfolio_snapshot: skip (no portfolio_history.json)")
+        return 0
+
+    rows = json.loads(HISTORY_FILE.read_text()).get("rows", [])
+    for row in rows:
+        values = {f: row.get(f) for f in _SNAPSHOT_FIELDS}
+        values["reconstructed"] = bool(row.get("reconstructed", False))
+        values["holdings"] = row.get("holdings") or []
+        values["events"] = row.get("events") or []
+        PortfolioSnapshot.insert(
+            as_of=date.fromisoformat(row["as_of"]), **values
+        ).on_conflict(
+            conflict_target=[PortfolioSnapshot.as_of],
+            update={
+                **{getattr(PortfolioSnapshot, f): values[f] for f in _SNAPSHOT_FIELDS},
+                PortfolioSnapshot.updated_at: SQL_NOW,
+            },
+        ).execute()
+
+    print(f"portfolio_snapshot: {len(rows)} frame(s) upserted")
+    return len(rows)
+
+
 def seed() -> None:
     """Run the full idempotent seed inside one transaction. Safe to re-call."""
     connect()
@@ -149,6 +190,7 @@ def seed() -> None:
         seed_instruments()
         seed_orders()
         seed_positions()
+        seed_portfolio_history()
     print("seed: done")
 
 

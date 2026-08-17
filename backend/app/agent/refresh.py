@@ -10,9 +10,12 @@ A Refresh:
      ``UNIQUE(symbol, as_of)`` constraint + ``on_conflict`` make a same-day
      re-run idempotent (overwrite, never duplicate). Values come from the
      ``stocks`` list ``collect()`` already computed — nothing is re-fetched.
-  3. **Recommendation pass** — for EVERY held ``Position``, force-run the headless
-     investigator so a fresh structured ``recommendation`` (+ ``news``) is stored.
-     Per ADR-0002 this is intentionally expensive and runs sequentially.
+  3. **Recommendation pass** — for EVERY held ``Position`` **and every symbol in
+     ``config.INVESTIGATE_WATCHLIST``**, force-run the headless investigator so a
+     fresh structured ``recommendation`` (+ ``news``) is stored. Per ADR-0002 this
+     is intentionally expensive and runs sequentially; the watchlist is the
+     owner's bounded exception to ADR-0004 (see that ADR's 04-Aug-2026 amendment),
+     so its length is a direct multiplier on Refresh cost.
 
 The LLM pass (step 3) is deliberately a separate, individually-callable piece
 guarded by ``run_recommendations`` so steps 1–2 (price/metric history) work and
@@ -133,12 +136,16 @@ def _append_history(stocks: list[dict], as_of: date) -> dict:
 
 
 def _run_recommendation_pass() -> dict:
-    """Force-run the headless investigator for every held Position, sequentially.
+    """Force-run the headless investigator over every held Position **plus every
+    ``config.INVESTIGATE_WATCHLIST`` symbol**, sequentially.
 
     Each Position's owner-intended horizon flows through ``investigate`` ->
     ``_ingest_recommendation`` (authoritative horizon), so the stored row's
-    horizon matches the Position. Per-symbol success/failure is collected; one bad
-    symbol never aborts the rest. Returns a per-symbol result map + counts.
+    horizon matches the Position. Watchlist symbols are not held, so they carry no
+    Position horizon — ``investigate`` falls back to the sidecar's own horizon and
+    then to 'tactical'. Held names run first; a watchlist name that is also held is
+    investigated once. Per-symbol success/failure is collected; one bad symbol
+    never aborts the rest. Returns a per-symbol result map + counts.
 
     Separated from the history step so the expensive/slow LLM work is an
     individually-callable seam.
@@ -146,12 +153,13 @@ def _run_recommendation_pass() -> dict:
     from app.agent.investigator import investigate
     from app.db.models import Position
 
-    positions = list(Position.select().order_by(Position.symbol))
-    total = len(positions)
+    held = [p.symbol_id for p in Position.select().order_by(Position.symbol)]
+    watch = [s for s in config.INVESTIGATE_WATCHLIST if s not in set(held)]
+    symbols = held + watch
+    total = len(symbols)
     results: dict[str, dict] = {}
     ok = 0
-    for i, pos in enumerate(positions, start=1):
-        sym = pos.symbol_id
+    for i, sym in enumerate(symbols, start=1):
         _set_phase(f"recommendations: {i}/{total} ({sym})",
                    recommendations_total=total, recommendations_done=i - 1)
         try:
@@ -168,7 +176,8 @@ def _run_recommendation_pass() -> dict:
             results[sym] = {"status": "error", "error": str(exc)}
         _set_phase(f"recommendations: {i}/{total} ({sym})",
                    recommendations_total=total, recommendations_done=i)
-    return {"positions": total, "succeeded": ok, "per_symbol": results}
+    return {"positions": len(held), "watchlist": len(watch), "total": total,
+            "succeeded": ok, "per_symbol": results}
 
 
 def run_refresh(run_recommendations: bool = True, source=None) -> dict:

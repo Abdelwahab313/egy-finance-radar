@@ -118,6 +118,32 @@ class News(BaseModel):
         table_name = "news"
 
 
+class PortfolioSnapshot(BaseModel):
+    # One dated frame of the whole book (ADR-0005). Aggregates are nullable so
+    # backfilled rows can carry an exact cost_basis without faking a market mark.
+    id = BigAutoField()
+    as_of = DateField(unique=True)
+    reconstructed = BooleanField(constraints=[SQL("DEFAULT FALSE")])
+    source = TextField(null=True)
+    nav_total = DecimalField(max_digits=18, decimal_places=2, null=True)
+    cost_basis = DecimalField(max_digits=18, decimal_places=2, null=True)
+    market_value = DecimalField(max_digits=18, decimal_places=2, null=True)
+    invested = DecimalField(max_digits=18, decimal_places=2, null=True)
+    cash = DecimalField(max_digits=18, decimal_places=2, null=True)
+    unrealized_pnl = DecimalField(max_digits=18, decimal_places=2, null=True)
+    unrealized_pct = DecimalField(max_digits=10, decimal_places=6, null=True)
+    deployed_pct = DecimalField(max_digits=10, decimal_places=6, null=True)
+    holdings = BinaryJSONField(constraints=[SQL("DEFAULT '[]'::jsonb")])
+    bucket_weights = BinaryJSONField(null=True)
+    sector_weights = BinaryJSONField(null=True)
+    events = BinaryJSONField(constraints=[SQL("DEFAULT '[]'::jsonb")])
+    created_at = DateTimeField(constraints=[SQL("DEFAULT now()")])
+    updated_at = DateTimeField(constraints=[SQL("DEFAULT now()")])
+
+    class Meta:
+        table_name = "portfolio_snapshot"
+
+
 class Recommendation(BaseModel):
     id = BigAutoField()
     symbol = ForeignKeyField(Instrument, field="symbol", column_name="symbol", backref="recommendations")

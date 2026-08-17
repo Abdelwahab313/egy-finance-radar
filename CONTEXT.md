@@ -59,3 +59,22 @@ metrics, append them to history, and re-run the recommendation pass across every
 held Position. It always re-runs fully (no same-day reuse) and executes in the
 background, so the dashboard stays responsive while results fill in.
 _Avoid_: Sync, reload, update.
+
+**Scene**:
+The market-level Egypt-finance context a Refresh presents alongside the
+Positions — the macro backdrop (index level, EGP, inflation, policy rate,
+T-bill hurdle) against which every Recommendation is read. It is a dated
+observation with an explicit as-of: a Scene is only as current as the day it
+was captured, and is flagged stale when older than the data around it. Distinct
+from the per-Instrument news an Investigation gathers — the Scene is the whole
+market's weather, not one company's.
+_Avoid_: Macro (informal ok), context, brief.
+
+**Portfolio Snapshot**:
+A dated record of the whole book at one point in time — its net asset value,
+invested-vs-cash split, unrealized P&L, and the bucket/sector weights and
+per-lot holdings that produced them. Kept as a time series so the owner can
+retrace how the book evolved. Distinct from a Position (one holding) and from
+the served snapshot cache (the latest state only); a Portfolio Snapshot is one
+frame in the book's history.
+_Avoid_: Snapshot (overloaded with the cache file), NAV point, state.
