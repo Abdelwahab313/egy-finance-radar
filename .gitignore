@@ -26,3 +26,6 @@ backend/data/reports/
 # OS / editor
 .DS_Store
 *.swp
+
+# Logs
+*.log

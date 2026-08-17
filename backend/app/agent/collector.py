@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 from app import config
 from app.analysis import classifier, metrics, signals
-from app.data.sources import DataSource, YFinanceSource
+from app.data.sources import DataSource, MarksOverlaySource, YFinanceSource
 from app.data.universe import EGX_UNIVERSE, symbols
 from app.portfolio.account import build_portfolio
 
@@ -20,7 +20,10 @@ BUCKET_ORDER = ["stable_bluechip", "value", "growth", "watchlist", "speculative"
 
 
 def collect(source: DataSource | None = None) -> dict:
-    source = source or YFinanceSource()
+    # Default: yfinance, with the owner's dated broker marks laid over the top.
+    # EGX vendor quotes are routinely days stale, so the marks are what make the
+    # latest bar trustworthy — see docs/adr/0006.
+    source = source or MarksOverlaySource(YFinanceSource())
     syms = symbols()
     print(f"[agent] fetching {len(syms)} EGX symbols via {type(source).__name__} ...")
     fetch = source.fetch(syms)
@@ -120,6 +123,7 @@ def collect(source: DataSource | None = None) -> dict:
         "live_data_ok_count": live_ok,   # kept for back-compat
         "universe_size": len(syms),
         "data_quality": _data_quality(prov_counter, live_ok, len(syms), index_source),
+        "marks": fetch.marks,
         "starting_capital_egp": config.STARTING_CAPITAL_EGP,
         "scene": _scene_brief(),
         "stocks": stocks,
@@ -287,7 +291,9 @@ def mark_orders_to_live() -> dict | None:
     if not order_syms:
         return _holdings_block({})
 
-    fetch = YFinanceSource().fetch(order_syms)
+    # Same overlay as collect(): the book must be marked to the owner's broker
+    # prices, not to whatever the vendor last published (ADR-0006).
+    fetch = MarksOverlaySource(YFinanceSource()).fetch(order_syms)
     index_rets, _ = metrics.market_returns(fetch)
     stock_by_sym: dict[str, dict] = {}
     for sym in order_syms:

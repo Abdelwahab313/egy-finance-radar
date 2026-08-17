@@ -25,7 +25,7 @@ from datetime import date, datetime, timezone
 
 from app import config
 from app.analysis import classifier, metrics, signals
-from app.data.sources import YFinanceSource
+from app.data.sources import MarksOverlaySource, YFinanceSource
 from app.data.universe import EGX_UNIVERSE, symbols
 
 # backend/ — investigator.py lives at backend/app/agent/investigator.py
@@ -132,7 +132,10 @@ def analyze_ticker(symbol: str) -> dict:
     universe = symbols()
     to_fetch = [sym] + [u for u in universe if u != sym]
 
-    fetch = YFinanceSource().fetch(to_fetch)
+    # Overlay owner marks (ADR-0006). Without this the investigation report is
+    # written off the vendor's last published bar — which on 17-Aug-2026 meant
+    # every source quoting ABUK at 73.71 while the broker showed 79.70.
+    fetch = MarksOverlaySource(YFinanceSource()).fetch(to_fetch)
     index_rets, index_source = metrics.market_returns(fetch)
 
     def _one(s: str) -> dict:
