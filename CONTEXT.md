@@ -27,9 +27,11 @@ The owner's *intended holding period* for a Position — a deliberate choice, no
 derived from the Style Bucket. Two values:
 - **Core** — intended to hold long, on the order of a year; judged on whether the
   long-term thesis still holds.
-- **Tactical** — intended to hold short, on the order of a month; judged on
-  near-term news, catalysts, and price targets.
-_Avoid_: Term, duration, hold-period.
+- **Satellite** — intended to hold short, on the order of a month; selected on
+  fundamentals (the name must be worth owning at all), timed on technicals
+  (entry/exit levels, catalysts, stops); tighter sell discipline.
+_Avoid_: Term, duration, hold-period. _Retired_: Tactical (renamed Satellite,
+03-Sep-2026 — the data and the owner's own usage had already converged on it).
 
 **Recommendation**:
 The advisor's verdict on a single Position at a point in time — an action
