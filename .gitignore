@@ -27,5 +27,7 @@ backend/data/reports/
 .DS_Store
 *.swp
 
+.playwright-mcp/
+
 # Logs
 *.log
