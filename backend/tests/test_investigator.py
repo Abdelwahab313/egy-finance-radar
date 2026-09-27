@@ -1,6 +1,8 @@
 """Tests for the single-ticker investigation agent (deterministic layer + guards).
 
-The yfinance network call is replaced with a synthetic source so these run offline.
+The yfinance network call is replaced with a synthetic source and the Position
+lookup (which needs Postgres) is stubbed, so these run offline. The database
+path is covered by test_db.py.
 """
 
 from datetime import date
@@ -42,6 +44,7 @@ def test_normalize_symbol():
 
 def test_analyze_ticker_returns_required_keys(monkeypatch):
     monkeypatch.setattr(investigator, "YFinanceSource", _FakeSource)
+    monkeypatch.setattr(investigator, "_position_block", lambda sym, price: None)
     out = investigator.analyze_ticker("comi")  # curated universe name, lowercased
 
     assert out["symbol"] == "COMI"
@@ -61,6 +64,7 @@ def test_analyze_ticker_returns_required_keys(monkeypatch):
 
 def test_analyze_ticker_handles_unknown_symbol(monkeypatch):
     monkeypatch.setattr(investigator, "YFinanceSource", _FakeSource)
+    monkeypatch.setattr(investigator, "_position_block", lambda sym, price: None)
     out = investigator.analyze_ticker("ELSH")  # not in the curated universe
     assert out["in_universe"] is False
     assert out["target"]["symbol"] == "ELSH"
