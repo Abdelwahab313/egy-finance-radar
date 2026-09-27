@@ -1,5 +1,5 @@
 """The collection agent: fetch EGX data -> compute metrics -> classify + score ->
-shortlist -> build the 10k EGP balanced portfolio -> write a JSON snapshot the API serves.
+shortlist -> build the balanced paper portfolio -> write a JSON snapshot the API serves.
 
 Run:  python -m app.agent.collector
 """

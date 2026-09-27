@@ -25,7 +25,7 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "egy-finance-radar",
-  description: "EGX stock classification & paper portfolio (20,000 EGP)",
+  description: "EGX stock classification, signals and a paper portfolio",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -39,7 +39,7 @@ export default function SiteHeader(props: SiteHeaderProps) {
           </Link>
         </nav>
         <div className="tagline">
-          Egyptian Exchange intelligence · <b>20,000 EGP</b> balanced paper
+          Egyptian Exchange intelligence · balanced paper
           portfolio
         </div>
         <div className="hactions">
