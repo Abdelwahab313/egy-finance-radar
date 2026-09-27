@@ -24,7 +24,7 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EGY Finance — EGX Intelligence",
+  title: "egy-finance-radar",
   description: "EGX stock classification & paper portfolio (20,000 EGP)",
 };
 

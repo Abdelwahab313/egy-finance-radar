@@ -1,4 +1,4 @@
-# Implementation Plan — Postgres-backed EGX Portfolio Advisor
+# Implementation Plan: Postgres-backed egy-finance-radar
 
 This is the **shared contract** for a 6-step build. Every step is executed by a
 separate subagent; they all read this file so table names, the driver, and the

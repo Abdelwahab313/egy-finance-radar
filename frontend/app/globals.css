@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ============================================================================
-   EGYFinance — EGX Intelligence Terminal
+   egy-finance-radar dashboard
    Design tokens + component styles ported pixel-faithfully from
    reports/redesign-mockup.html. Font literals are swapped for the next/font
    CSS variables (set in app/layout.tsx). Dashboard component rules that use

@@ -1,4 +1,4 @@
-# EGY Finance — single externally-exposed port: 5040 (frontend).
+# egy-finance-radar: single externally-exposed port 5040 (frontend).
 # The backend is reachable only inside the compose network; the frontend
 # proxies /api/* to it, so nothing else binds a host port to conflict with.
 #

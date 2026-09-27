@@ -4,7 +4,7 @@ argument-hint: "[capital_egp]"
 allowed-tools: Bash, Read, Edit, Agent
 ---
 
-You are refreshing the **EGY Finance** EGX pipeline with live data and then critically
+You are refreshing the **egy-finance-radar** EGX pipeline with live data and then critically
 reviewing the result. Be adversarial — the goal is to catch regressions and stale/garbage
 data, not to reassure. Project root: the repository working directory; backend is in `backend/`.
 

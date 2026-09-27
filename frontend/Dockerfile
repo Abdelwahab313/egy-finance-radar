@@ -1,4 +1,4 @@
-# EGY Finance frontend — Next.js 15, the only externally-exposed service.
+# egy-finance-radar frontend: Next.js 15, the only externally-exposed service.
 # Listens on 5040 and proxies /api/* to the backend (see next.config.mjs).
 
 FROM node:22-alpine AS build

@@ -1,4 +1,4 @@
-# EGX Portfolio Advisor
+# egy-finance-radar
 
 A personal advisor for the Egyptian Exchange (EGX). It tracks the owner's real
 holdings and, for each one, recommends what to do next based on recent news and

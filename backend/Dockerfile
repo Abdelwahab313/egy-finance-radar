@@ -1,4 +1,4 @@
-# EGY Finance backend — FastAPI served by uvicorn.
+# egy-finance-radar backend: FastAPI served by uvicorn.
 # Stays internal to the Docker network; the frontend proxies /api/* to it.
 FROM python:3.13-slim
 
