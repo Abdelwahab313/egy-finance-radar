@@ -108,9 +108,10 @@ egy-finance-radar/
 
 **Store.** Postgres is the system of record (ADR-0001). Tables: `instrument`,
 `position`, `orders`, `price_history`, `metric_snapshot`, `news`,
-`recommendation`, `portfolio_snapshot`. `backend/data/snapshot.json` is a cache
+`recommendation`, `recommendation_outcome`, `portfolio_snapshot`. `backend/data/snapshot.json` is a cache
 the API serves; a Refresh rebuilds it. The three JSON files under
 `backend/data/` seed the database and are safe to edit by hand.
+`recommendations.json` holds five sample verdicts so the scorecard has rows.
 
 ## API
 
@@ -129,6 +130,7 @@ All routes are served by `backend/app/main.py`.
 | POST | `/api/investigate` | Start a one-ticker investigation in the background |
 | GET | `/api/investigate/status?filename=` | Poll an investigation |
 | GET | `/api/recommendations?symbol=` | Stored verdicts, newest first, optionally per symbol |
+| GET | `/api/scorecard?symbol=` | Realised outcome of every verdict and hit rates by horizon and action |
 | GET | `/api/reports` | List investigation reports |
 | GET | `/api/reports/{filename}` | One report's markdown; filename is regex-guarded |
 
@@ -142,6 +144,7 @@ One line each; the files carry the options considered.
 - [0004](docs/adr/0004-opportunity-seam-stays-manual.md) Refresh investigates holdings only; researching a new name is a manual act.
 - [0005](docs/adr/0005-portfolio-snapshot-history.md) Portfolio-level history is its own dated table, backfilled best-effort.
 - [0006](docs/adr/0006-owner-marks-override-vendor-prices.md) A dated price read off the broker outranks every vendor; same-date disagreement above 10% blocks the name.
+- [0007](docs/adr/0007-recommendation-scorecard.md) Every stored verdict is scored against the closes that followed it, in its own table, on every Refresh.
 
 ## Data honesty
 

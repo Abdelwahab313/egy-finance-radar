@@ -14,6 +14,7 @@ from peewee import (
     DateTimeField,
     DecimalField,
     ForeignKeyField,
+    IntegerField,
     Model,
     SQL,
     TextField,
@@ -159,3 +160,26 @@ class Recommendation(BaseModel):
 
     class Meta:
         table_name = "recommendation"
+
+
+class RecommendationOutcome(BaseModel):
+    recommendation = ForeignKeyField(Recommendation, field="id", column_name="recommendation_id",
+                                     primary_key=True, backref="outcome", on_delete="CASCADE")
+    symbol = ForeignKeyField(Instrument, field="symbol", column_name="symbol", backref="outcomes")
+    evaluated_at = DateTimeField(constraints=[SQL("DEFAULT now()")])
+    window_days = IntegerField()
+    window_end = DateField()
+    entry_date = DateField(null=True)
+    entry_price = DecimalField(max_digits=18, decimal_places=4, null=True)
+    last_date = DateField(null=True)
+    last_price = DecimalField(max_digits=18, decimal_places=4, null=True)
+    max_close = DecimalField(max_digits=18, decimal_places=4, null=True)
+    min_close = DecimalField(max_digits=18, decimal_places=4, null=True)
+    return_pct = DecimalField(max_digits=10, decimal_places=6, null=True)
+    status = TextField(constraints=[SQL(
+        "CHECK (status IN ('target_hit','stop_hit','expired','open','no_data'))")])
+    resolved_on = DateField(null=True)
+    correct = BooleanField(null=True)
+
+    class Meta:
+        table_name = "recommendation_outcome"

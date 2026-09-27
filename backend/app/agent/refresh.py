@@ -4,7 +4,7 @@ A Refresh:
   1. ``collect()`` + ``save()`` — re-fetch the universe, recompute metrics, and
      regenerate the ``snapshot.json`` cache (unchanged behaviour; this also
      re-marks held-order prices).
-  2. **History append** — for every computed stock, upsert a ``price_history``
+  2. **History append** (then the ADR-0007 scorecard pass) — for every computed stock, upsert a ``price_history``
      row ``(symbol, as_of=today, close)`` and a ``metric_snapshot`` row
      ``(symbol, as_of=today, bucket, score, metrics, signal)``. The
      ``UNIQUE(symbol, as_of)`` constraint + ``on_conflict`` make a same-day
@@ -226,6 +226,15 @@ def run_refresh(run_recommendations: bool = True, source=None) -> dict:
         # 2. append price/metric history (idempotent upsert).
         _set_phase("history")
         summary["history"] = _append_history(snap["stocks"], today)
+
+        # 2b. score every past verdict against realised closes (ADR-0007). A
+        # scoring failure is recorded and must not block the recommendation pass.
+        _set_phase("scorecard")
+        try:
+            from app.analysis import scorecard
+            summary["scorecard"] = scorecard.score_all(source=source, today=today)
+        except Exception as exc:  # noqa: BLE001
+            summary["scorecard"] = {"error": str(exc)}
 
         # 3. force-run the recommendation pass over every held Position. The pass
         # shells out to the headless `claude` CLI, which only exists on the host —

@@ -11,6 +11,7 @@ Endpoints:
   GET  /api/reports              -> list past investigation reports
   GET  /api/reports/{filename}   -> fetch one report's markdown
   GET  /api/recommendations      -> stored structured verdicts for a symbol (newest-first)
+  GET  /api/scorecard            -> realised outcome of every verdict + hit rates (ADR-0007)
 """
 
 from __future__ import annotations
@@ -230,6 +231,25 @@ def recommendations(symbol: str | None = None):
             "stop_loss": float(r.stop_loss) if r.stop_loss is not None else None,
             "report_file": r.report_file,
         } for r in rows]
+    finally:
+        db_close()
+
+
+@app.get("/api/scorecard")
+def scorecard_view(symbol: str | None = None):
+    """Realised outcome of every stored verdict plus hit rates (ADR-0007).
+    Rows are upserted by the Refresh; this endpoint only reads."""
+    sym = None
+    if symbol is not None:
+        if not SYMBOL_RE.match(symbol):
+            raise HTTPException(400, "Invalid symbol — expected 1–8 alphanumeric characters.")
+        sym = symbol.strip().upper()
+
+    from app.analysis import scorecard
+    from app.db import close as db_close, connect as db_connect
+    try:
+        db_connect()
+        return scorecard.report(sym)
     finally:
         db_close()
 

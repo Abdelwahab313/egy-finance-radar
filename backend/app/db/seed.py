@@ -28,11 +28,12 @@ from peewee import SQL
 
 from app.data.universe import EGX_UNIVERSE
 from app.db import connect, db
-from app.db.models import Instrument, Orders, PortfolioSnapshot, Position
+from app.db.models import Instrument, Orders, PortfolioSnapshot, Position, Recommendation
 
 # backend/app/db/seed.py -> backend/data/orders.json
 ORDERS_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "orders.json"
 HISTORY_FILE = ORDERS_FILE.parent / "portfolio_history.json"
+RECOMMENDATIONS_FILE = ORDERS_FILE.parent / "recommendations.json"
 
 # `now()` SQL literal, reused in upsert `update` clauses to bump updated_at.
 SQL_NOW = SQL("now()")
@@ -186,6 +187,31 @@ def seed_portfolio_history() -> int:
     return len(rows)
 
 
+def seed_recommendations() -> int:
+    """Seed-once insert of sample verdicts (ADR-0007). Skips if any exist."""
+    if not RECOMMENDATIONS_FILE.exists():
+        print("recommendations: skip (no recommendations.json)")
+        return 0
+    existing = Recommendation.select().count()
+    if existing:
+        print(f"recommendations: skip (table not empty — {existing} row(s) already present)")
+        return 0
+    rows = json.loads(RECOMMENDATIONS_FILE.read_text()).get("rows", [])
+    for row in rows:
+        Recommendation.insert(
+            symbol=row["symbol"],
+            as_of=date.fromisoformat(row["as_of"]),
+            horizon=row["horizon"],
+            action=row["action"],
+            rationale=row.get("rationale"),
+            price_target=row.get("price_target"),
+            stop_loss=row.get("stop_loss"),
+            news_ids=[],
+        ).execute()
+    print(f"recommendations: {len(rows)} sample verdict(s) inserted")
+    return len(rows)
+
+
 def seed() -> None:
     """Run the full idempotent seed inside one transaction. Safe to re-call."""
     connect()
@@ -194,6 +220,7 @@ def seed() -> None:
         seed_orders()
         seed_positions()
         seed_portfolio_history()
+        seed_recommendations()
     print("seed: done")
 
 

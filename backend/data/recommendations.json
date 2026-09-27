@@ -1,0 +1,20 @@
+{
+  "note": "Sample verdicts for the sample book, seeded once into the recommendation table so GET /api/scorecard has rows on a clean clone. Targets and stops are invented; outcomes are computed from real closes.",
+  "rows": [
+    {"symbol": "COMI", "as_of": "2026-07-01", "horizon": "core", "action": "add",
+     "rationale": "Sample verdict: cheap on trailing P/E, adding on the pullback.",
+     "price_target": 145.0, "stop_loss": 118.0},
+    {"symbol": "ETEL", "as_of": "2026-07-01", "horizon": "core", "action": "hold",
+     "rationale": "Sample verdict: thesis intact, no add at this level.",
+     "price_target": null, "stop_loss": 85.0},
+    {"symbol": "HRHO", "as_of": "2026-07-15", "horizon": "tactical", "action": "add",
+     "rationale": "Sample verdict: catalyst dated ahead, sized as a satellite line.",
+     "price_target": 30.0, "stop_loss": 24.0},
+    {"symbol": "ADIB", "as_of": "2026-08-03", "horizon": "core", "action": "trim",
+     "rationale": "Sample verdict: extended above the 50-day, trimming a third.",
+     "price_target": null, "stop_loss": null},
+    {"symbol": "EFID", "as_of": "2026-08-20", "horizon": "tactical", "action": "add",
+     "rationale": "Sample verdict: cheap and growing, target at the consensus level.",
+     "price_target": 36.0, "stop_loss": 27.5}
+  ]
+}
