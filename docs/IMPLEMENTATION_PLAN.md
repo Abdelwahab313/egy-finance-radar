@@ -142,8 +142,8 @@ CREATE INDEX IF NOT EXISTS idx_reco_symbol ON recommendation(symbol);
 - **Recommendation API** (added in step 4/5): `GET /api/recommendations?symbol=SYM`
   returns rows newest-first as
   `{symbol, as_of, horizon, action, rationale, price_target, stop_loss, report_file}`.
-- **Seed horizons (owner-confirmed):** COMI = core, MFPC = core, ADIB = core,
-  EMFD = **tactical**. COMI's two lots are both Core → one Core Position.
+- **Seed horizons:** `SEED_HORIZONS` in `db/seed.py`; sample book has four core
+  lines and two tactical. Several lots in one symbol collapse into one Position.
 
 ## Deployment note — the LLM recommendation pass is a host-run job
 

@@ -8,7 +8,7 @@ Seeds four tables, in FK-safe order:
    Orders have no natural key, so this is **seed-once**: lots are inserted only
    when the ``orders`` table is empty. Re-runs are skipped (logged).
 3. ``position`` — one Position per held ticker, with the owner-confirmed Horizon
-   (COMI/MFPC/ADIB = core, EMFD = tactical). ``opened_at`` = earliest order
+   (see ``SEED_HORIZONS``). ``opened_at`` = earliest order
    ``traded_at`` for the symbol. Upsert on the ``symbol`` PK (idempotent).
 4. ``portfolio_snapshot`` — the dated book frames from
    ``backend/data/portfolio_history.json`` (ADR-0005). Upsert on ``as_of``, so a
@@ -37,12 +37,15 @@ HISTORY_FILE = ORDERS_FILE.parent / "portfolio_history.json"
 # `now()` SQL literal, reused in upsert `update` clauses to bump updated_at.
 SQL_NOW = SQL("now()")
 
-# Owner-confirmed Horizons (IMPLEMENTATION_PLAN.md "Seed horizons").
+# Horizon per seeded symbol (IMPLEMENTATION_PLAN.md "Seed horizons"). The DB
+# still spells the short horizon 'tactical'; CONTEXT.md calls it Satellite.
 SEED_HORIZONS: dict[str, str] = {
+    "MTF": "core",
     "COMI": "core",
-    "MFPC": "core",
     "ADIB": "core",
-    "EMFD": "tactical",
+    "ETEL": "core",
+    "HRHO": "tactical",
+    "EFID": "tactical",
 }
 
 
