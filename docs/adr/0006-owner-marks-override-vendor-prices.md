@@ -9,7 +9,7 @@ On 17-Aug-2026 the owner asked why the agent kept citing prices and news that
 were stale or not about Egypt. The specific failures, all in one session:
 
 - **ABUK.** Investing.com, TradingView, stockanalysis and african-markets all
-  quoted 73.71 dated **10-Aug**. The owner's the broker screen showed **79.70**. The
+  quoted 73.71 dated **10-Aug**. The owner's broker screen showed **79.70**. The
   vendors were not wrong about 10-Aug — they were five sessions behind, and
   nothing in the pipeline could tell the difference between "the price" and "the
   last price a vendor happened to publish".

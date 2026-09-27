@@ -148,7 +148,7 @@ export default function Page() {
 
         <footer className="site-footer">
           <span className="disc">Research / education only — not investment advice.</span>
-          <span className="sig2">EGYFINANCE · EGX TERMINAL · v2</span>
+          <span className="sig2">EGY-FINANCE-RADAR · EGX TERMINAL</span>
         </footer>
       </div>
     </>

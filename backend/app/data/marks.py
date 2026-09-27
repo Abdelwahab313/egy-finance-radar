@@ -2,7 +2,7 @@
 
 Why this exists: on 17-Aug-2026 every vendor (Investing.com, TradingView,
 stockanalysis, african-markets) quoted ABUK at 73.71 dated 10-Aug, while the
-owner's the broker broker screen showed 79.70. The vendors were not wrong about
+owner's broker screen showed 79.70. The vendors were not wrong about
 10-Aug; they were five sessions behind, and nothing in the pipeline could say so.
 A mark is the owner reading a number off the broker and writing it down with a
 date and a source, which is the highest-quality EGX price this project can get.

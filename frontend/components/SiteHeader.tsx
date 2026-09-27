@@ -21,7 +21,7 @@ export default function SiteHeader(props: SiteHeaderProps) {
             </svg>
           </div>
           <b>
-            EGY<span>Finance</span>
+            egy<span>-finance-radar</span>
           </b>
         </Link>
         <nav className="tabs">
