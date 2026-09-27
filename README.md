@@ -1,159 +1,178 @@
-# EGY Finance — EGX Stock Intelligence Agent
+# egy-finance-radar
 
-A data-collection agent + classifier + technical signal engine + paper-trading portfolio
-for **Egyptian Exchange (EGX)** listed stocks, with a Next.js dashboard.
+Research tooling for the Egyptian Exchange (EGX). It keeps a small book of
+positions in Postgres, pulls prices, classifies each name on fundamentals, runs
+a mechanical technical signal over it, and stores a dated recommendation per
+position so past verdicts can be checked later. A Next.js dashboard reads the
+result.
 
-> Built as a full vertical slice: real data pipeline → stock classification → curated
-> shortlist → a balanced value+growth paper portfolio → entry/exit signals → a basic UI.
-> Polished UI design is a later round.
+I built it for one retail account. The tracked data files are a fictional
+sample book on real tickers. Nothing here is investment advice.
+
+![Dashboard](docs/dashboard.png)
+
+## Why
+
+EGX has no clean free API. yfinance gives usable prices for the liquid names
+and little else, and its fundamentals for EGX are often wrong. The problem I
+wanted to solve is not fetching data. It is knowing, for every number on the
+screen, whether it is live, a curated fallback, or a price I read off a broker
+screen and wrote down with a date. The pipeline carries that provenance
+through to the API.
 
 ## The two-layer model
 
-The system deliberately separates **what to own** from **when to act**:
+The system separates what to own from when to act.
 
-1. **Classification layer** (fundamentals + risk) → buckets, scores, shortlist, and the
-   balanced portfolio. Answers *what to own*.
-2. **Signal layer** (technical/momentum) → BUY / HOLD / TRIM / EXIT per stock with
-   concrete stop-loss and take-profit levels. Answers *when to act*.
+1. **Classification layer**. Hard eligibility gates (market cap, average traded
+   value), then a style bucket (`stable_bluechip`, `value`, `growth`,
+   `speculative`), then a 0 to 100 quality score, a shortlist, and a balanced
+   paper portfolio with per-name and per-sector caps.
+2. **Signal layer**. 50 and 200-day structure, RSI(14), 52-week breakout or
+   pullback, ATR(14) stop. One action per stock: BUY, HOLD, TRIM, EXIT, AVOID,
+   with concrete stop and target levels.
 
-These two can — and do — disagree (e.g. a fundamentally cheap name whose price has
-broken below its 200-day MA). That disagreement is a feature, not a bug.
+The two layers can disagree, and the dashboard shows the disagreement rather
+than resolving it.
+
+A third piece, the **Investigator**, precomputes a deterministic context for one
+ticker and then drives a headless LLM agent to research it and write a report.
+The structured verdict (action, target, stop, news) is stored as a
+**Recommendation** next to the prose. This part needs the `claude` CLI on the
+host and does not run inside the container.
+
+## Run it
+
+```bash
+docker compose up --build -d
+curl -X POST http://localhost:5040/api/refresh
+```
+
+Then open http://localhost:5040.
+
+The first command starts Postgres, applies the migrations, seeds the sample
+book from `backend/data/`, and serves the dashboard on the one published port.
+The second fetches live prices from yfinance and writes the snapshot cache. It
+runs in the background; poll `GET /api/refresh/status`. Inside the container the
+LLM pass is skipped because the CLI is not there.
+
+Local development without Docker:
+
+```bash
+cd backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+pytest -q                                   # offline unit tests
+docker compose up -d db                     # Postgres on localhost:5433
+python -m app.db.migrate && python -m app.db.seed
+python -m app.agent.collector               # writes data/snapshot.json
+uvicorn app.main:app --reload --port 8000
+
+cd ../frontend && npm ci && npm run dev     # http://localhost:3000
+```
+
+The database test runs only when `TEST_DATABASE_URL` is set. Locally that is
+`postgresql://egx:egx@localhost:5433/egx` with the compose `db` service up. CI
+provides a service container.
 
 ## Architecture
 
 ```
-egy_finance/
-├── backend/                 # Python: data agent, classifier, signals, portfolio, FastAPI
+egy-finance-radar/
+├── CONTEXT.md                  # domain vocabulary: Position, Order, Horizon, Recommendation...
+├── docs/adr/                   # one file per decision, see the index below
+├── docker-compose.yml          # db + backend (internal) + frontend (port 5040)
+├── backend/
 │   ├── app/
-│   │   ├── config.py        # ALL tunable constants (capital, gates, thresholds, signal params)
+│   │   ├── config.py           # every tunable constant: capital, gates, thresholds, signal params
 │   │   ├── data/
-│   │   │   ├── universe.py   # curated EGX names + static fallback fundamentals
-│   │   │   └── sources.py    # DataSource abstraction (YFinanceSource now, EODHD-ready)
+│   │   │   ├── universe.py     # curated EGX names with dated static fundamentals
+│   │   │   ├── sources.py      # DataSource interface; YFinanceSource; MarksOverlaySource
+│   │   │   └── marks.py        # dated broker marks that override vendor bars (ADR-0006)
 │   │   ├── analysis/
-│   │   │   ├── metrics.py    # price-derived metrics + proxy-market beta + live-value validation
-│   │   │   ├── classifier.py # eligibility gates → buckets → composite score
-│   │   │   └── signals.py    # technical/momentum entry & exit engine
-│   │   ├── portfolio/
-│   │   │   └── account.py    # slot allocation, cap-and-redistribute, cost model
+│   │   │   ├── metrics.py      # returns, volatility, liquidity, beta vs an equal-weight proxy
+│   │   │   ├── classifier.py   # gates -> bucket -> quality score
+│   │   │   └── signals.py      # technical entry and exit engine
+│   │   ├── portfolio/account.py# slot allocation, caps, cost model
 │   │   ├── agent/
-│   │   │   └── collector.py  # orchestrates everything → writes data/snapshot.json
-│   │   └── main.py           # FastAPI serving the snapshot
-│   ├── tests/                # pytest invariants (portfolio caps, balance, signals, validation)
-│   ├── pytest.ini
-│   └── requirements.txt
-└── frontend/                # Next.js 15 + Tailwind v4 dashboard (dark theme)
-
-.claude/commands/egx-refresh-review.md   # /egx-refresh-review slash command
+│   │   │   ├── collector.py    # fetch -> metrics -> classify -> signals -> snapshot.json
+│   │   │   ├── refresh.py      # background Refresh job: collect, append history, recommend
+│   │   │   └── investigator.py # one-ticker deterministic context + headless LLM report
+│   │   ├── db/                 # peewee models, migration runner, idempotent seed
+│   │   └── main.py             # FastAPI
+│   ├── migrations/             # plain SQL, applied in order, recorded in schema_migrations
+│   ├── data/                   # orders.json, marks.json, portfolio_history.json (sample book)
+│   └── tests/
+└── frontend/                   # Next.js 15 dashboard; proxies /api/* to the backend
 ```
 
-## Why this design
+**Store.** Postgres is the system of record (ADR-0001). Tables: `instrument`,
+`position`, `orders`, `price_history`, `metric_snapshot`, `news`,
+`recommendation`, `portfolio_snapshot`. `backend/data/snapshot.json` is a cache
+the API serves; a Refresh rebuilds it. The three JSON files under
+`backend/data/` seed the database and are safe to edit by hand.
 
-EGX has **no clean free API**. yfinance (`.CA` suffix, e.g. `COMI.CA`) gives reliable *prices*
-for the ~30 liquid index names and is free, so it's the default source — behind a `DataSource`
-interface so **EODHD** (`.EGX`, paid, full coverage + fundamentals) can drop in later. We work
-from a **curated universe** of liquid blue-chips to sidestep yfinance's flakiness on thin tickers,
-and ship **static fallback fundamentals** so the pipeline always produces a result.
+## API
 
-### Data honesty (important)
+All routes are served by `backend/app/main.py`.
 
-`yfinance` is reliable for **prices** but **not for EGX fundamentals**. The pipeline reflects this:
-
-- **Live / computed:** prices, volatility, returns, liquidity, **beta** (vs a live equal-weight
-  proxy — Yahoo's `^CASE30` index returns ~1 row and is unusable), and **validated** P/E & P/B
-  (Yahoo's bogus values like a P/E of 0.12 are rejected via plausibility bands → static fallback).
-- **Static fallback (curated, ~June 2026):** dividend yield, payout ratio, ROE, 3y EPS growth.
-
-Every snapshot includes a `data_quality` block listing exactly which fields are live vs static.
-Wiring **EODHD** is the single highest-value upgrade — it makes the static fields live.
-
-## Run it
-
-### Backend
-```bash
-cd backend
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-python -m app.agent.collector          # fetch EGX data → classify → signals → portfolio → snapshot.json
-uvicorn app.main:app --reload --port 8000
-pytest -q                               # run the invariant tests
-```
-
-> **yfinance gotcha:** versions < 1.4 are broken against Yahoo's current backend (silent empty
-> fetches, "possibly delisted"). requirements.txt pins `yfinance>=1.4.1` + `curl_cffi`.
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev        # http://localhost:3000  (expects backend on :8000)
-```
-
-### Docker (single port: 5040)
-```bash
-docker compose up --build       # -> http://localhost:5040
-```
-The **frontend is the only externally-published service** (host port `5040`). The
-backend runs internal-only on the compose network; the frontend proxies `/api/*`
-to it (Next.js rewrite → `http://backend:8000`), so there's no second host port to
-collide with anything else.
-
-- `backend/data/` is bind-mounted, so the snapshot and your `orders.json` (placed
-  orders / live P&L) persist across rebuilds and restarts. The image ships the
-  current `snapshot.json` as a seed; `POST /api/refresh` regenerates it live.
-- **Deploy target / different port:** change the left side of `"5040:5040"` in
-  `docker-compose.yml` for the host port. The proxy target is baked at build time
-  (Next serializes `rewrites()` into the build), so to point at a different backend
-  host, set the `BACKEND_ORIGIN` **build arg** (already wired in compose).
-- The **Investigate** feature shells out to the `claude` CLI, which isn't in the
-  container — that endpoint won't work in Docker. The dashboard, classification,
-  signals, portfolio, and order-logging all do.
-
-## API endpoints
-
-| Method | Path | Returns |
+| Method | Path | What it does |
 |---|---|---|
-| GET  | `/api/health`    | liveness + whether a snapshot exists |
-| GET  | `/api/snapshot`  | full snapshot (scene, data_quality, stocks, shortlist, portfolio) |
-| GET  | `/api/stocks`    | classified stocks only |
-| GET  | `/api/portfolio` | the portfolio (positions, exposures, **actions** with stop/target) |
-| GET  | `/api/signals`   | per-stock signals + portfolio entry/exit actions |
-| POST | `/api/refresh`   | re-run the collection agent (slow; hits the network) |
+| GET | `/api/health` | Liveness and whether a snapshot exists |
+| GET | `/api/snapshot` | Full snapshot: scene, data_quality, stocks, shortlist, portfolio |
+| GET | `/api/stocks` | Classified stocks only |
+| GET | `/api/portfolio` | Paper portfolio and starting capital |
+| GET | `/api/signals` | Per-stock signal plus portfolio actions |
+| POST | `/api/refresh` | Start a background Refresh; second call returns `already_running` |
+| GET | `/api/refresh/status` | Phase and counts of the current or last Refresh |
+| POST | `/api/orders` | Record a placed lot (symbol, shares, price, side, horizon) and re-mark holdings |
+| POST | `/api/investigate` | Start a one-ticker investigation in the background |
+| GET | `/api/investigate/status?filename=` | Poll an investigation |
+| GET | `/api/recommendations?symbol=` | Stored verdicts, newest first, optionally per symbol |
+| GET | `/api/reports` | List investigation reports |
+| GET | `/api/reports/{filename}` | One report's markdown; filename is regex-guarded |
 
-## The signal engine (technical / momentum, long-only)
+## Decisions
 
-Per stock, from daily OHLCV (see `analysis/signals.py`):
+One line each; the files carry the options considered.
 
-- **EXIT** — death cross (50-MA below 200-MA), price below the 200-MA, or stop hit.
-- **TRIM** — RSI(14) ≥ 70, or price > 20% above the 50-MA (overbought / extended → take profit).
-- **BUY** — confirmed uptrend (price > 200-MA and 50-MA > 200-MA) **and** a trigger: golden
-  cross, pullback to the 50-MA, 52-week breakout, or an oversold bounce — and not overbought.
-- **HOLD** — uptrend, no fresh trigger. **AVOID** — no confirmed uptrend.
-- **Levels:** stop = price − 2.5×ATR(14); take-profit = 2× the stop distance; entry zone =
-  50-MA up to current price (scale in within).
+- [0001](docs/adr/0001-postgres-as-store.md) Postgres as the store, chosen for where the project is going rather than today's data size.
+- [0002](docs/adr/0002-always-rerun-refresh.md) Refresh always re-runs the full recommendation pass; freshness over token cost, run as a background job.
+- [0003](docs/adr/0003-horizon-per-position.md) Horizon is a per-Position tag set by the owner; one Position per ticker.
+- [0004](docs/adr/0004-opportunity-seam-stays-manual.md) Refresh investigates holdings only; researching a new name is a manual act.
+- [0005](docs/adr/0005-portfolio-snapshot-history.md) Portfolio-level history is its own dated table, backfilled best-effort.
+- [0006](docs/adr/0006-owner-marks-override-vendor-prices.md) A dated price read off the broker outranks every vendor; same-date disagreement above 10% blocks the name.
 
-## Slash command
+## Data honesty
 
-`/egx-refresh-review [capital_egp]` — refreshes the snapshot with live data and re-runs the
-adversarial critique of the output and code (data quality, portfolio invariants, signal sanity).
-Optionally pass a capital amount to re-seed the account (e.g. `/egx-refresh-review 20000`).
+Every snapshot carries a `data_quality` block naming which fields are which.
 
-## Key constants (configurable)
+- **Live.** Prices, returns, volatility, average traded value, beta. Beta is
+  against an equal-weight proxy of the universe because Yahoo's `^CASE30`
+  returns a single row.
+- **Validated live.** P/E and P/B from yfinance pass plausibility bands or fall
+  back to static.
+- **Static.** Dividend yield, payout, ROE, EPS growth: curated by hand in
+  `universe.py`. An absent key means not found. It is never zero and never an
+  estimate.
+- **Marks.** A dated broker price overrides the vendor's last bar. A same-date
+  disagreement above 10% is reported as a conflict and blocks the name.
 
-All in `backend/app/config.py`:
-- `STARTING_CAPITAL_EGP = 20_000` · `CASH_BUFFER_PCT = 0.10`
-- Eligibility gates (min market cap, min avg daily traded value)
-- Bucket thresholds (beta, **volatility**, P/E, P/B, dividend yield, ROE, growth)
-- Portfolio targets (bucket weights 40/35/25, max position 25%, max sector 40%, target holdings)
-- Trading-cost model (stamp duty + EGX/MCDR fees + digital vs traditional brokerage)
-- Signal params (SMA 50/200, RSI 14, ATR 14 ×2.5 stop, breakout/pullback/extended bands)
+## Limits
 
-## Caveats
+- One price vendor. EODHD sits behind the `DataSource` interface but is not wired.
+- Open-ended funds have no price series; they are marked by hand through
+  `MANUAL_NAV`.
+- The beta proxy includes the stock itself, so it carries a small self-weight bias.
+- Refresh status is in-process memory. A restart forgets a running job.
+- The Investigator shells out to a CLI on the host. In the container it is skipped.
+- Prices are nominal EGP, not FX-adjusted.
+- The Market Scene (index level, EGP, inflation, policy rate) is a hand-written
+  brief in `collector.py` with its own as-of date. It is not fetched.
+- Single user. No auth on the API; do not expose port 5040 beyond localhost.
 
-- `data_quality.mostly_static_fields` lists fundamentals that are curated (June 2026), **not** a
-  live feed — verify against a broker before any real trade.
-- Prices are nominal **EGP** (not FX-adjusted). EGP devaluation distorts long-horizon USD views.
-- Beta is computed against an **equal-weight proxy** (the universe itself), not the real EGX30 —
-  it includes a small self-weight bias and is directional.
-- This is research/education tooling, **not investment advice**.
-```
+## Not investment advice
+
+Research tooling for one account whose owner makes their own decisions. The
+sample book is fictional. Verify any number here against your broker and the
+exchange before acting on it.
