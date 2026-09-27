@@ -1,0 +1,36 @@
+{
+  "schema": "marks/v1",
+  "note": "Dated prices read off a broker or exchange screen (ADR-0006). A newer mark becomes the latest bar; a same-date mark disagreeing with the vendor by more than MARK_CONFLICT_PCT blocks the name. These are sample values.",
+  "marks": {
+    "MTF": {
+      "price": 215.1,
+      "as_of": "2026-09-15",
+      "source": "sample"
+    },
+    "COMI": {
+      "price": 139.8,
+      "as_of": "2026-09-15",
+      "source": "sample"
+    },
+    "ADIB": {
+      "price": 49.6,
+      "as_of": "2026-09-15",
+      "source": "sample"
+    },
+    "ETEL": {
+      "price": 95.2,
+      "as_of": "2026-09-15",
+      "source": "sample"
+    },
+    "HRHO": {
+      "price": 27.9,
+      "as_of": "2026-09-15",
+      "source": "sample"
+    },
+    "EFID": {
+      "price": 32.1,
+      "as_of": "2026-09-15",
+      "source": "sample"
+    }
+  }
+}

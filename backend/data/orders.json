@@ -1,0 +1,48 @@
+{
+  "as_of": "2026-09-15",
+  "note": "Sample book. Real EGX tickers, fictional quantities and costs. Not anyone's holdings and not a recommendation. Schema: as_of + lots[symbol, shares, entry_price, date, note].",
+  "lots": [
+    {
+      "symbol": "MTF",
+      "shares": 500,
+      "entry_price": 210.0,
+      "date": "2026-06-10",
+      "note": "Core sleeve: money-market fund, priced via config.MANUAL_NAV."
+    },
+    {
+      "symbol": "COMI",
+      "shares": 100,
+      "entry_price": 130.0,
+      "date": "2026-06-10",
+      "note": "Core."
+    },
+    {
+      "symbol": "ADIB",
+      "shares": 200,
+      "entry_price": 47.0,
+      "date": "2026-06-24",
+      "note": "Core."
+    },
+    {
+      "symbol": "ETEL",
+      "shares": 60,
+      "entry_price": 95.0,
+      "date": "2026-06-24",
+      "note": "Core."
+    },
+    {
+      "symbol": "HRHO",
+      "shares": 300,
+      "entry_price": 26.0,
+      "date": "2026-07-15",
+      "note": "Satellite: target 30.00, mental stop 24.00."
+    },
+    {
+      "symbol": "EFID",
+      "shares": 250,
+      "entry_price": 30.0,
+      "date": "2026-08-20",
+      "note": "Satellite: target 36.00, mental stop 27.50."
+    }
+  ]
+}
